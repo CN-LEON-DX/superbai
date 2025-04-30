@@ -37,31 +37,29 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
     
     try {
-      // Call the RPC function for password reset
+      // Gọi function request_password_reset
       final response = await _supabase.rpc(
-        'reset_password',
+        'request_password_reset',
         params: {
           'p_gmail': _emailController.text.trim(),
         },
       );
       
-      if (response['success'] == true) {
-        setState(() {
-          _successMessage = 'Password reset instructions sent to your email';
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = response['message'] ?? 'Password reset request failed';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+      // Always show positive message
       setState(() {
-        _errorMessage = 'An error occurred during the password reset request';
+        _successMessage = 'If the email exists in our system, we will send password reset instructions to it. Please check your email inbox and spam folder.';
+        _emailController.clear(); // Clear email input after submission
         _isLoading = false;
       });
+
+    } catch (e) {
       print('Password reset error: $e');
+      // Even on error, show the same message to avoid email enumeration
+      setState(() {
+        _successMessage = 'If the email exists in our system, we will send password reset instructions to it. Please check your email inbox and spam folder.';
+        _emailController.clear();
+        _isLoading = false;
+      });
     }
   }
 
@@ -112,7 +110,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                     // Subtitle
                     Text(
-                      'Enter your email and we\'ll send you instructions to reset your password',
+                      'Enter your email used to login',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14.0,
@@ -126,16 +124,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       Container(
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8.0),
-                          border: Border.all(color: Colors.green.withOpacity(0.5)),
+                          border: Border.all(color: Colors.blue.withOpacity(0.5)),
                         ),
                         child: Text(
                           _successMessage!,
                           style: const TextStyle(
-                            color: Colors.green,
+                            color: Colors.blue,
                             fontSize: 14.0,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     if (_successMessage != null) const SizedBox(height: 20.0),
