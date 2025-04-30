@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 import 'widgets/bottom_nav_bar.dart';
+import 'screens/history_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -18,7 +19,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   List<Widget> get _screens => [
     const HomePage(),
     const ExploreScreen(),
-    const HistoryScreen(),
+    HistoryScreen(),
     ProfilePage(onLogout: _handleLogout), // Truyền callback onLogout
   ];
 
@@ -66,27 +67,6 @@ class ExploreScreen extends StatelessWidget {
       body: const Center(
         child: Text(
           'Explore Screen',
-          style: TextStyle(fontSize: 24, color: Colors.white),
-        ),
-      ),
-    );
-  }
-}
-
-// Màn hình History (placeholder)
-class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Text(
-          'History Screen',
           style: TextStyle(fontSize: 24, color: Colors.white),
         ),
       ),

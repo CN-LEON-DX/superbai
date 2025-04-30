@@ -586,14 +586,8 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   // Xử lý đăng xuất
   Future<void> _logout(BuildContext context) async {
     const secureStorage = FlutterSecureStorage();
-    
-    // Xóa thông tin người dùng khỏi bộ nhớ
     await secureStorage.deleteAll();
-    
-    // Gọi callback nếu được cung cấp
     widget.onLogout?.call();
-    
-    // Chuyển đến màn hình đăng nhập và xóa stack điều hướng
     if (context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginPage()),
