@@ -6,6 +6,8 @@ import 'forgot_password.dart';
 import 'home_page.dart';
 import 'utils/supabase_config.dart';
 import 'login_page.dart';
+import 'profile_page.dart';
+import 'main_screen.dart';
 
 void main() async {
   try {
@@ -38,7 +40,6 @@ void main() async {
     print('Error in main: $e');
     print('Stack trace: $stackTrace');
     
-    // Show error widget instead of crashing
     runApp(MaterialApp(
       home: Scaffold(
         body: Center(
@@ -69,25 +70,38 @@ class _MyAppState extends State<MyApp> {
         brightness: Brightness.dark,
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFF1F222A),
-        hintColor: Colors.grey[600],
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme.apply(
-                bodyColor: Colors.white,
-                displayColor: Colors.white,
-              ),
-        ),
+        cardColor: const Color(0xFF2C2F37),
+        hintColor: Colors.grey[400],
+        fontFamily: 'Poppins',
+        dividerColor: Colors.grey[700]?.withOpacity(0.5),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1F222A),
           elevation: 0,
           iconTheme: IconThemeData(color: Colors.white70),
+          titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500, fontFamily: 'Poppins'),
+        ),
+        listTileTheme: ListTileThemeData(
+          iconColor: Colors.grey[400],
+          textColor: Colors.white,
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: Colors.grey[400],
           )
         ),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme.apply(
+                bodyColor: Colors.white,
+                displayColor: Colors.white,
+              ),
+        ),
       ),
       home: const LoginPage(),
+      routes: {
+        '/home': (context) => const HomePage(),
+        '/profile': (context) => const ProfilePage(),
+        '/main': (context) => const MainScreen(),
+      },
     );
   }
 }

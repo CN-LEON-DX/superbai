@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/chat_screen.dart';
+// Loại bỏ import không cần thiết cho navigation vì giờ đây MainScreen đã xử lý
+// import 'profile_page.dart'; 
+// import 'widgets/bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,24 +12,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0; // Selected item in BottomNavBar
-  
-  // Maps to keep track of which cards are being pressed
+  // Maps để theo dõi trạng thái của các card
   final Map<String, bool> _isConversationCardPressed = {};
   final Map<String, bool> _isModelCardPressed = {};
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      // Handle navigation based on index (Home, Explore, History, Profile)
-      print('Tapped index: $index');
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
@@ -131,40 +123,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
-      
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore_outlined),
-            activeIcon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history_outlined),
-            activeIcon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey[500],
-        onTap: _onItemTapped,
-        backgroundColor: const Color(0xFF1F222A),
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        showUnselectedLabels: true,
       ),
     );
   }
