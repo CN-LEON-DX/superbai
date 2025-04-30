@@ -9,7 +9,10 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _LoginPageState createState() {
+    print('Creating LoginPage state');
+    return _LoginPageState();
+  }
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -21,8 +24,16 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
   String? _errorMessage;
   
-  final _supabase = Supabase.instance.client;
+  late final SupabaseClient _supabase;
   final _secureStorage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    print('LoginPage initState');
+    _supabase = Supabase.instance.client;
+    _checkCurrentUser();
+  }
 
   @override
   void dispose() {
@@ -42,7 +53,6 @@ class _LoginPageState extends State<LoginPage> {
     });
     
     try {
-      // Call the RPC function for login
       final response = await _supabase.rpc(
         'check_login',
         params: {
@@ -53,13 +63,10 @@ class _LoginPageState extends State<LoginPage> {
       
       if (response['success'] == true) {
         await _secureStorage.write(key: 'user_id', value: response['user_id']);
-        await _secureStorage.write(key: 'email', value: _emailController.text.trim());
-        
-        if (response['profile'] != null) {
-          await _secureStorage.write(key: 'user_profile', value: response['profile'].toString());
-        }
-        
-        // Navigate to Home Page
+        await _secureStorage.write(key: 'email', value: response['email']);
+        await _secureStorage.write(key: 'token', value: response['token']);
+        await _secureStorage.write(key: 'token_expires', value: response['token_expires']);
+
         if (mounted) {
           Navigator.pushReplacement(
             context, 
@@ -67,64 +74,20 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        // Show error message
         setState(() {
-          _errorMessage = response['message'] ?? 'Login failed';
+          _errorMessage = response['message'] ?? 'Đăng nhập thất bại';
           _isLoading = false;
         });
       }
     } catch (e) {
-      // Handle login errors
-      setState(() {
-        _errorMessage = 'An error occurred during login';
-        _isLoading = false;
-      });
       print('Login error: $e');
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    
-    try {
-      await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://callback',
-      );
-      
-      // Note: The result will be handled by Supabase auth state change
-      // This will redirect to browser for auth
-      
-    } catch (e) {
       setState(() {
-        _errorMessage = 'Google sign-in failed';
+        _errorMessage = 'Có lỗi xảy ra khi đăng nhập';
         _isLoading = false;
       });
-      print('Google sign-in error: $e');
     }
   }
   
-  // Listen for auth state changes
-  @override
-  void initState() {
-    super.initState();
-    _checkCurrentUser();
-    
-    // Listen for auth state changes (for Google Sign-in flow)
-    _supabase.auth.onAuthStateChange.listen((data) {
-      final AuthChangeEvent event = data.event;
-      final Session? session = data.session;
-      
-      if (event == AuthChangeEvent.signedIn && session != null) {
-        _handleSuccessfulGoogleSignIn(session.user);
-      }
-    });
-  }
-  
-  // Check if user is already logged in
   Future<void> _checkCurrentUser() async {
     final userId = await _secureStorage.read(key: 'user_id');
     if (userId != null && mounted) {
@@ -373,45 +336,6 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               )
                             : const Text('Login'),
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    
-                    // Or divider
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.grey[700], thickness: 1)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text(
-                            'OR',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12.0,
-                            ),
-                          ),
-                        ),
-                        Expanded(child: Divider(color: Colors.grey[700], thickness: 1)),
-                      ],
-                    ),
-                    const SizedBox(height: 20.0),
-                    
-                    // Sign in with Google button
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signInWithGoogle,
-                      icon: Image.network(
-                        'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg',
-                        height: 18.0,
-                        width: 18.0,
-                      ),
-                      label: const Text('Sign in with Gmail'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey[600]!),
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
                       ),
                     ),
                     const SizedBox(height: 30.0),
