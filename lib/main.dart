@@ -74,6 +74,30 @@ class _MyAppState extends State<MyApp> {
         hintColor: Colors.grey[400],
         fontFamily: 'Poppins',
         dividerColor: Colors.grey[700]?.withOpacity(0.5),
+        chipTheme: ChipThemeData(
+          backgroundColor: const Color(0xFF2C2F37),
+          selectedColor: Colors.grey[700],
+          labelStyle: TextStyle(color: Colors.grey[300], fontSize: 13, fontWeight: FontWeight.w500),
+          secondaryLabelStyle: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 9.0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          side: BorderSide.none,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF393C44),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 14.0,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins'
+            ),
+          ),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1F222A),
           elevation: 0,

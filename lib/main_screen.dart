@@ -3,6 +3,7 @@ import 'home_page.dart';
 import 'profile_page.dart';
 import 'widgets/bottom_nav_bar.dart';
 import 'screens/history_screen.dart';
+import 'screens/explore_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -48,27 +49,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       bottomNavigationBar: AppBottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
-      ),
-    );
-  }
-}
-
-// Màn hình Explore (placeholder)
-class ExploreScreen extends StatelessWidget {
-  const ExploreScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Explore'),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Text(
-          'Explore Screen',
-          style: TextStyle(fontSize: 24, color: Colors.white),
-        ),
       ),
     );
   }
