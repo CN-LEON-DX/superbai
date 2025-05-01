@@ -5,13 +5,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'home_page.dart';
 import 'forgot_password.dart';
 import 'main_screen.dart';
+import 'dart:convert';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
   _LoginPageState createState() {
-    print('Creating LoginPage state');
+    
     return _LoginPageState();
   }
 }
@@ -31,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    print('LoginPage initState');
+    
     _supabase = Supabase.instance.client;
     _checkCurrentUser();
   }
@@ -54,6 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     });
     
     try {
+      
       final response = await _supabase.rpc(
         'check_login',
         params: {
@@ -62,11 +64,30 @@ class _LoginPageState extends State<LoginPage> {
         },
       );
       
+      
+      
       if (response['success'] == true) {
-        await _secureStorage.write(key: 'user_id', value: response['user_id']);
-        await _secureStorage.write(key: 'email', value: response['email']);
+        await _secureStorage.write(key: 'user_id', value: response['user_id'].toString());
+        await _secureStorage.write(key: 'email', value: _emailController.text.trim());
+        
+        // Lưu token
         await _secureStorage.write(key: 'token', value: response['token']);
         await _secureStorage.write(key: 'token_expires', value: response['token_expires']);
+        
+        // Lưu name từ response mới
+        if (response['name'] != null) {
+          await _secureStorage.write(key: 'name', value: response['name']);
+          
+        } else {
+          // Nếu không có name trong response, dùng phần đầu của email làm name
+          final defaultName = _emailController.text.split('@')[0];
+          await _secureStorage.write(key: 'name', value: defaultName);
+          
+        }
+        
+        // In ra tất cả giá trị đã lưu để debug
+        final allValues = await _secureStorage.readAll();
+        
 
         if (mounted) {
           Navigator.pushReplacement(
@@ -81,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     } catch (e) {
-      print('Login error: $e');
+      
       setState(() {
         _errorMessage = 'Có lỗi xảy ra khi đăng nhập';
         _isLoading = false;

@@ -11,17 +11,8 @@ import 'main_screen.dart';
 
 void main() async {
   try {
-    print('Starting app...');
     WidgetsFlutterBinding.ensureInitialized();
-    print('Flutter binding initialized');
-
-    print('Loading .env file');
     await dotenv.load(fileName: ".env");
-    print('Loaded .env file');
-    
-    print('Supabase URL: ${SupabaseConfig.supabaseUrl}');
-    print('Initializing Supabase...');
-    
     if (SupabaseConfig.supabaseUrl.isEmpty || SupabaseConfig.supabaseAnonKey.isEmpty) {
       throw Exception('Supabase configuration is missing. Please check your .env file.');
     }
@@ -31,19 +22,12 @@ void main() async {
       anonKey: SupabaseConfig.supabaseAnonKey,
       debug: true,
     );
-    print('Supabase initialized successfully');
-
-    print('Running app...');
     runApp(const MyApp());
-    print('App started');
   } catch (e, stackTrace) {
-    print('Error in main: $e');
-    print('Stack trace: $stackTrace');
-    
     runApp(MaterialApp(
       home: Scaffold(
         body: Center(
-          child: Text('Error initializing app: $e', 
+          child: Text('Some thing went wrong: $e', 
             style: const TextStyle(color: Colors.red),
             textAlign: TextAlign.center,
           ),
@@ -63,7 +47,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    print('Building MyApp');
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

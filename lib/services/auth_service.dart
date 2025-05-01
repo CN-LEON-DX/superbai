@@ -16,15 +16,7 @@ class AuthService {
   
   final secureStorage = const FlutterSecureStorage();
   final supabase = Supabase.instance.client;
-  
-  // Initialize Supabase
-  static Future<void> initialize() async {
-    await Supabase.initialize(
-      url: 'YOUR_SUPABASE_URL', // Replace with your Supabase URL
-      anonKey: 'YOUR_SUPABASE_ANON_KEY', // Replace with your Supabase anon key
-    );
-  }
-  
+
   String _generateSalt() {
     final random = Random.secure();
     final List<int> saltBytes = List<int>.generate(32, (_) => random.nextInt(256));
@@ -52,9 +44,7 @@ class AuthService {
       if (response['success'] == true) {
         await secureStorage.write(key: 'user_id', value: response['user_id']);
         await secureStorage.write(key: 'email', value: email);
-        
-        final profileData = jsonEncode(response['profile']);
-        await secureStorage.write(key: 'user_profile', value: profileData);
+        await secureStorage.write(key: 'name', value: response['name']);
         
         return {
           'success': true,
@@ -195,11 +185,21 @@ class AuthService {
   
   // Get current user profile
   Future<Map<String, dynamic>?> getUserProfile() async {
-    final profileData = await secureStorage.read(key: 'user_profile');
-    if (profileData != null) {
-      return jsonDecode(profileData);
+    try {
+      
+      final profileData = await secureStorage.read(key: 'user_profile');
+      
+      
+      if (profileData != null) {
+        final decodedData = jsonDecode(profileData);
+        
+        return decodedData;
+      }
+      return null;
+    } catch (e) {
+      
+      return null;
     }
-    return null;
   }
   
   // Logout

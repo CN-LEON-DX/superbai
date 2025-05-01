@@ -120,7 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.more_vert),
             onPressed: () {
               // Show options menu
-              print('Options menu tapped');
+              
             },
           ),
         ],
@@ -188,7 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
               iconSize: 26,
               onPressed: () {
                 // Handle voice input
-                print('Mic button tapped');
+                
               },
             ),
 

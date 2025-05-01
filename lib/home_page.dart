@@ -61,7 +61,7 @@ class _HomePageState extends State<HomePage> {
               tagColor: Colors.deepPurple.shade300.withOpacity(0.3),
               tagTextColor: Colors.deepPurple.shade100,
               onTap: () {
-                print('Model X Tapped');
+                
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
               tagColor: Colors.cyan.shade300.withOpacity(0.3),
               tagTextColor: Colors.cyan.shade100,
               onTap: () {
-                print('Model Y Tapped');
+                
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -109,7 +109,7 @@ class _HomePageState extends State<HomePage> {
               tagColor: Colors.amber.shade300.withOpacity(0.3),
               tagTextColor: Colors.amber.shade100,
               onTap: () {
-                print('Model Z Tapped');
+                
                 Navigator.push(
                   context,
                   MaterialPageRoute(

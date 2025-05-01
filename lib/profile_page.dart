@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Thêm import cho HapticFeedback
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert'; // Add this for JSON decoding
 import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -16,11 +17,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
-  // Giữ trạng thái cho các hiệu ứng
   final Map<String, bool> _isOptionHovered = {};
   
-  // Controller cho animation
   late AnimationController _animationController;
+  
+  String _userName = "Loading...";
+  String _userEmail = "Loading...";
   
   @override
   void initState() {
@@ -29,6 +31,48 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    
+    _loadUserData();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        
+        _loadUserData();
+      }
+    });
+  }
+  
+  Future<void> _loadUserData() async {
+    try {
+      
+      
+      final storage = const FlutterSecureStorage();
+      final name = await storage.read(key: 'name');
+      final email = await storage.read(key: 'email');
+      
+      final allValues = await storage.readAll();
+      
+      
+      if (name != null && email != null) {
+        setState(() {
+          _userName = name;
+          _userEmail = email;
+        });
+        
+      } else {
+        
+        if (email != null && name == null) {
+          final defaultName = email.split('@')[0];
+          await storage.write(key: 'name', value: defaultName);
+          setState(() {
+            _userName = defaultName;
+            _userEmail = email;
+          });
+          
+        }
+      }
+    } catch (e) {
+      
+    }
   }
   
   @override
@@ -37,7 +81,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     super.dispose();
   }
 
-  // Hiển thị hộp thoại xác nhận đăng xuất
   void _showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -100,7 +143,6 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  // Hiển thị popup chỉnh sửa hồ sơ
   void _showEditProfileDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -169,7 +211,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
   // Hiển thị dialog chỉnh sửa tên
   void _showNameEditDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController(text: "Alex Mitchell");
+    final TextEditingController nameController = TextEditingController(text: _userName);
     
     showDialog(
       context: context,
@@ -196,8 +238,18 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
             child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               // Lưu tên mới
+              if (nameController.text.isNotEmpty) {
+                // Cập nhật state
+                setState(() {
+                  _userName = nameController.text;
+                });
+                
+                // Lưu name mới vào secure storage
+                await const FlutterSecureStorage().write(key: 'name', value: nameController.text);
+                
+              }
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -585,14 +637,24 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
 
   // Xử lý đăng xuất
   Future<void> _logout(BuildContext context) async {
-    const secureStorage = FlutterSecureStorage();
-    await secureStorage.deleteAll();
-    widget.onLogout?.call();
-    if (context.mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
+    try {
+      // Xóa tất cả dữ liệu trong secure storage
+      const storage = FlutterSecureStorage();
+      await storage.deleteAll();
+      
+      
+      // Gọi callback onLogout nếu có
+      widget.onLogout?.call();
+      
+      // Chuyển đến màn hình đăng nhập
+      if (context.mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      
     }
   }
 
@@ -686,9 +748,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                     ),
                   ),
                   const SizedBox(height: 16.0),
-                  const Text(
-                    'Alex Mitchell',
-                    style: TextStyle(
+                  Text(
+                    _userName,
+                    style: const TextStyle(
                       fontSize: 22.0,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -696,7 +758,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                   ),
                   const SizedBox(height: 6.0),
                   Text(
-                    'alex.mitchell@email.com',
+                    _userEmail,
                     style: TextStyle(
                       fontSize: 15.0,
                       color: Colors.grey[400],

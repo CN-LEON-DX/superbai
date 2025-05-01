@@ -53,7 +53,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       });
 
     } catch (e) {
-      print('Password reset error: $e');
+      
       // Even on error, show the same message to avoid email enumeration
       setState(() {
         _successMessage = 'If the email exists in our system, we will send password reset instructions to it. Please check your email inbox and spam folder.';

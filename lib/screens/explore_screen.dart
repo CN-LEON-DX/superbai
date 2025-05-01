@@ -66,20 +66,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Explore AI'),
+        title: const Text('Explore AI', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.search, size: 26),
             onPressed: () {
               // TODO: Implement Search functionality
-              print('Search icon tapped');
+              
             },
           ),
           IconButton(
             icon: const Icon(Icons.notifications_none_outlined, size: 26),
             onPressed: () {
               // TODO: Navigate to Notifications screen
-              print('Notifications icon tapped');
+              
             },
           ),
           const SizedBox(width: 8), // Padding for the last icon
@@ -132,7 +132,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 setState(() {
                   _selectedChipIndex = index;
                   // TODO: Implement filtering based on selection
-                  print('Selected category: ${_filterCategories[index]}');
+                  
                 });
               },
             ),
@@ -197,7 +197,7 @@ class ExploreCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 // TODO: Implement action for this item
-                print('Try Now tapped for ${item.title}');
+                
               },
               child: const Text('Try Now'),
             ),
