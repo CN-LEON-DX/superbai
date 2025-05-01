@@ -79,7 +79,6 @@ class _LoginPageState extends State<LoginPage> {
           await _secureStorage.write(key: 'name', value: response['name']);
           
         } else {
-          // Nếu không có name trong response, dùng phần đầu của email làm name
           final defaultName = _emailController.text.split('@')[0];
           await _secureStorage.write(key: 'name', value: defaultName);
           
@@ -97,14 +96,14 @@ class _LoginPageState extends State<LoginPage> {
         }
       } else {
         setState(() {
-          _errorMessage = response['message'] ?? 'Đăng nhập thất bại';
+          _errorMessage = response['message'] ?? 'Login failed';
           _isLoading = false;
         });
       }
     } catch (e) {
       
       setState(() {
-        _errorMessage = 'Có lỗi xảy ra khi đăng nhập';
+        _errorMessage = 'An error occurred during login';
         _isLoading = false;
       });
     }
