@@ -50,28 +50,7 @@ class LoginController with ChangeNotifier {
     }
   }
   
-  Future<bool> signInWithGmail(BuildContext context) async {
-    try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-      
-      final response = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.flutter://callback',
-      );
-      
-      _isLoading = false;
-      notifyListeners();
-      
-      return true;
-    } catch (e) {
-      _errorMessage = 'Error during Gmail login: ${e.toString()}';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
+  
   
   Future<bool> requestPasswordReset(String email) async {
     try {

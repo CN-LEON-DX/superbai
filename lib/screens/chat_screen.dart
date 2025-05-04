@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-
-class Message {
-  final String text;
-  final bool isMe; // True if the message is from the current user
-
-  Message({required this.text, required this.isMe});
-}
+import '../models/chat_message.dart';
+import '../services/chat_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ChatScreen extends StatefulWidget {
   final String aiModelName;
   final String? modelType;
+  final String workflowId;
+  final String? chatId;
 
   const ChatScreen({
     Key? key, 
     required this.aiModelName,
+    required this.workflowId,
     this.modelType,
+    this.chatId,
   }) : super(key: key);
 
   @override
@@ -25,47 +26,190 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  // Mock Chat Messages
-  final List<Message> _messages = [
-    Message(text: 'Hello! How can I assist you today?', isMe: false),
-    Message(text: 'Can you help me with my project?', isMe: true),
-    Message(
-        text: 'Of course! Please tell me more about your project and what specific help you need.',
-        isMe: false),
-  ];
+  List<ChatMessage> _messages = [];
+  bool _isLoading = true;
+  String? _currentChatId;
+  RealtimeChannel? _chatChannel;
+  bool _isWaitingForResponse = false;
 
   @override
   void initState() {
     super.initState();
-    // Optional: Scroll to bottom when screen is loaded
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+    _currentChatId = widget.chatId;
+    _initializeChat();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage() {
-    final text = _controller.text.trim();
-    if (text.isNotEmpty) {
+  Future<void> _initializeChat() async {
+    try {
       setState(() {
-        _messages.add(Message(text: text, isMe: true));
-        // Simulate response from AI after a short delay
-        Future.delayed(const Duration(milliseconds: 500), () {
-          setState(() {
-            _messages.add(Message(text: 'I\'m processing your request about "$text"...', isMe: false));
-          });
-          _scrollToBottom(durationMillis: 100);
-        });
+        _isLoading = true;
       });
-      _controller.clear();
-      _scrollToBottom();
+
+      // If no existing chatId, create a new chat session
+      if (_currentChatId == null) {
+        print('Creating new chat session for workflow: ${widget.workflowId}');
+        _currentChatId = await ChatService.getOrCreateChatSession(
+          workflowId: widget.workflowId,
+        );
+        print('Created new chat session: $_currentChatId');
+      } else {
+        print('Using existing chat session: $_currentChatId');
+      }
+
+      // Load messages for the current chat
+      await _loadMessages();
+
+      // Start listening for new messages
+      _subscribeToMessages();
+
+    } catch (e) {
+      print('Error initializing chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error initializing chat: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      
+      // Scroll to bottom when messages are loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+    }
+  }
+
+  Future<void> _loadMessages() async {
+    if (_currentChatId == null) {
+      return;
+    }
+    
+    try {
+      final messages = await ChatService.getChatMessages(_currentChatId!);
+      final currentUserId = ChatService.supabase.auth.currentUser?.id ?? '';
+      
+      if (mounted) {
+        setState(() {
+          _messages = messages
+              .map((m) => ChatMessage.fromMap(m, currentUserId))
+              .toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading messages: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading messages: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  void _subscribeToMessages() {
+    if (_currentChatId == null) return;
+    
+    // Dispose of any existing subscription
+    if (_chatChannel != null) {
+      ChatService.unsubscribeFromChat(_chatChannel!);
+    }
+    
+    // Set up real-time subscription
+    _chatChannel = ChatService.subscribeToChat(
+      _currentChatId!,
+      (newMessageData) {
+        final currentUserId = ChatService.supabase.auth.currentUser?.id ?? '';
+        final newMessage = ChatMessage.fromMap(newMessageData, currentUserId);
+        
+        // Check if this message is already in the list
+        final isDuplicate = _messages.any((m) => m.id == newMessage.id);
+        
+        if (!isDuplicate && mounted) {
+          setState(() {
+            _messages.add(newMessage);
+            // Sort messages by timestamp
+            _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            
+            // If this is a bot response, mark that we're no longer waiting
+            if (newMessage.senderId != currentUserId) {
+              _isWaitingForResponse = false;
+            }
+          });
+          _scrollToBottom();
+        }
+      },
+    );
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    if (_currentChatId == null) {
+      await _initializeChat();
+      if (_currentChatId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to initialize chat session. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
+    _controller.clear();
+    final _secureStorage = const FlutterSecureStorage();
+    final currentUserId = await _secureStorage.read(key: 'user_id');
+    
+    // Create optimistic message to show immediately
+    final optimisticMessage = ChatMessage.createLocalMessage(
+      _currentChatId!,
+      currentUserId ?? '',
+      text,
+      messageType: 'text',
+    );
+    
+    setState(() {
+      _messages.add(optimisticMessage);
+      _isWaitingForResponse = true;
+    });
+    
+    // Scroll to show the new message
+    await Future.delayed(const Duration(milliseconds: 50));
+    _scrollToBottom();
+    
+    try {
+      print('Sending message to server...');
+      final response = await ChatService.sendMessage(
+        chatId: _currentChatId!,
+        message: text,
+        messageType: 'text',
+      );
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending message: ${e.toString()}'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+        
+        setState(() {
+          _messages.removeWhere((m) => 
+            m.message == text && 
+            m.senderId == currentUserId &&
+            m.id == null
+          );
+          _isWaitingForResponse = false;
+        });
+      }
     }
   }
 
@@ -80,6 +224,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    if (_chatChannel != null) {
+      ChatService.unsubscribeFromChat(_chatChannel!);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -90,11 +244,15 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         title: Row(
           children: [
-            // AI Avatar
+            // AI Avatar - Using a Material icon instead of SVG
             CircleAvatar(
               radius: 18,
-              backgroundImage: const NetworkImage('https://via.placeholder.com/150/771796'),
               backgroundColor: Colors.grey[700],
+              child: const Icon(
+                Icons.smart_toy_outlined, 
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 10),
             // AI Name & Status
@@ -120,32 +278,36 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.more_vert),
             onPressed: () {
               // Show options menu
-              
             },
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Chat Messages Area
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return MessageBubble(
-                  message: message.text,
-                  isMe: message.isMe,
-                );
-              },
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Chat Messages Area
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+                    itemCount: _messages.length,
+                    addAutomaticKeepAlives: true,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      return MessageBubble(
+                        key: ValueKey(message.id ?? '${message.senderId}-${message.createdAt.millisecondsSinceEpoch}'),
+                        message: message.message,
+                        isMe: message.isMe,
+                      );
+                    },
+                  ),
+                ),
+                // Input Area
+                _buildInputArea(),
+              ],
             ),
-          ),
-          // Input Area
-          _buildInputArea(),
-        ],
-      ),
     );
   }
 
@@ -157,51 +319,88 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Text Input Field
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
-                decoration: InputDecoration(
-                  hintText: 'Message',
-                  filled: true,
-                  fillColor: const Color(0xFF2C2F37),
-                  hintStyle: TextStyle(color: Colors.grey[500]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 20.0),
+            // Waiting for response indicator
+            if (_isWaitingForResponse)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Processing...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[400],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ),
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: null,
               ),
-            ),
-            const SizedBox(width: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Text Input Field
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: 'Message',
+                      filled: true,
+                      fillColor: const Color(0xFF2C2F37),
+                      hintStyle: TextStyle(color: Colors.grey[500]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 20.0),
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLines: null,
+                    enabled: !_isWaitingForResponse, // Disable input during processing
+                  ),
+                ),
+                const SizedBox(width: 8),
 
-            // Microphone Button
-            IconButton(
-              icon: Icon(Icons.mic_none_outlined, color: Colors.grey[400]),
-              iconSize: 26,
-              onPressed: () {
-                // Handle voice input
-                
-              },
-            ),
+                // Microphone Button
+                IconButton(
+                  icon: Icon(Icons.mic_none_outlined, color: Colors.grey[400]),
+                  iconSize: 26,
+                  onPressed: _isWaitingForResponse ? null : () {
+                    // Handle voice input
+                  },
+                ),
 
-            // Send Button
-            IconButton(
-              icon: Transform.rotate(
-                angle: -math.pi / 9,
-                child: Icon(Icons.send, color: Colors.grey[400])
-              ),
-              iconSize: 24,
-              onPressed: _sendMessage,
+                // Send Button
+                IconButton(
+                  icon: Transform.rotate(
+                    angle: -math.pi / 9,
+                    child: Icon(
+                      Icons.send, 
+                      color: _isWaitingForResponse ? Colors.grey[700] : Colors.grey[400],
+                    ),
+                  ),
+                  iconSize: 24,
+                  onPressed: _isWaitingForResponse ? null : _sendMessage,
+                ),
+                const SizedBox(width: 4), // Small final padding
+              ],
             ),
-            const SizedBox(width: 4), // Small final padding
           ],
         ),
       ),

@@ -256,6 +256,7 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(
             builder: (context) => ChatScreen(
               aiModelName: title,
+              workflowId: id,
               modelType: tag,
             ),
           ),

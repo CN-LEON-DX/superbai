@@ -39,6 +39,9 @@ dependencies:
   crypto: ^3.0.6
   flutter_secure_storage: ^9.2.4
   flutter_dotenv: ^5.1.0
+  http: ^1.1.0
+  intl: ^0.18.1
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
