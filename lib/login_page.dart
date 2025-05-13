@@ -70,21 +70,20 @@ class _LoginPageState extends State<LoginPage> {
         await _secureStorage.write(key: 'user_id', value: response['user_id'].toString());
         await _secureStorage.write(key: 'email', value: _emailController.text.trim());
         
-        // Lưu token
         await _secureStorage.write(key: 'token', value: response['token']);
         await _secureStorage.write(key: 'token_expires', value: response['token_expires']);
         
-        // Lưu name từ response mới
+        print('JWT Token: ${response['token']}');
+        print('Token Expires: ${response['token_expires']}');
+        
         if (response['name'] != null) {
           await _secureStorage.write(key: 'name', value: response['name']);
-          
         } else {
           final defaultName = _emailController.text.split('@')[0];
           await _secureStorage.write(key: 'name', value: defaultName);
           
         }
         
-        // In ra tất cả giá trị đã lưu để debug
         final allValues = await _secureStorage.readAll();
         
 
